@@ -1,15 +1,23 @@
+// RRD-MERGE
+// https://github.com/jbuchbinder/rrd-merge
+
 package main
 
 import (
 	"encoding/xml"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
 
 func main() {
-	fOld := "bytes_in.rrd.old"
-	fNew := "bytes_in.rrd.new"
+	if len(os.Args) != 3 {
+		fmt.Println("Usage: rrd-merge OLD.rrd NEW.rrd")
+		return
+	}
+	fOld := os.Args[1]
+	fNew := os.Args[2]
 
 	dOld := Rrd{}
 	bOld := dumpXml(fOld)
