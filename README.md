@@ -6,7 +6,7 @@
 ## USAGE
 
 ```
-rrd-merge OLDFILE.rrd NEWFILE.rrd
+rrd-merge OLDFILE.rrd NEWFILE.rrd OUTPUTFILE.rrd
 ```
 
 ## BUILDING
