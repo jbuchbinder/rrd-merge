@@ -12,12 +12,13 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: rrd-merge OLD.rrd NEW.rrd")
+	if len(os.Args) != 4 {
+		fmt.Println("Usage: rrd-merge OLD.rrd NEW.rrd OUTPUT.rrd")
 		return
 	}
 	fOld := os.Args[1]
 	fNew := os.Args[2]
+	fOut := os.Args[3]
 
 	dOld := Rrd{}
 	bOld := dumpXml(fOld)
@@ -96,7 +97,7 @@ func main() {
 	}
 
 	// Write out to new
-	restoreXml(fNew, dNew)
+	restoreXml(fOut, dNew)
 }
 
 func rrdInfo(file string, rrd Rrd) {
