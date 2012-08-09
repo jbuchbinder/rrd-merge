@@ -1,6 +1,7 @@
 package main
 
 type Rrd struct {
+	XMLName    struct{} `xml:"rrd"`
 	Version    string   `xml:"version"`
 	Step       int      `xml:"step"`
 	LastUpdate int64    `xml:"lastupdate"`

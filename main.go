@@ -84,8 +84,8 @@ func main() {
 			rCount := 0
 			// Comparison and replace
 			for p := 0; p < rraCountNew; p++ {
-				if strings.Contains(sliceOld[p].Value, "NaN") && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
-					//fmt.Printf("Position %d has value to replace\n", p)
+				if !strings.Contains(sliceOld[p].Value, "NaN") && sliceOld[p].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
+					fmt.Printf("Position %d has value to replace [%s -> %s]\n", p, dNew.Rra[i].Database.Data[p].Value, sliceOld[p].Value)
 					dNew.Rra[i].Database.Data[p].Value = sliceOld[p].Value
 					rCount++
 				}
@@ -131,6 +131,8 @@ func restoreXml(file string, rrd Rrd) {
 		panic(err)
 	}
 	bin, err := xml.Marshal(rrd)
+	// DEBUG:
+	// fmt.Println(string(bin))
 	_, err = stdin.Write([]byte(bin))
 	if err != nil {
 		panic(err)
