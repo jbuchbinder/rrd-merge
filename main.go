@@ -5,21 +5,29 @@ package main
 
 import (
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"math"
-	"os"
 	"os/exec"
 	"strings"
 )
 
+var debug bool
+
+func init() {
+	flag.BoolVar(&debug, "debug", false, "debug")
+}
+
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Println("Usage: rrd-merge OLD.rrd NEW.rrd OUTPUT.rrd")
+	flag.Parse()
+	args := flag.Args()
+	if len(args) != 3 {
+		fmt.Println("Usage: rrd-merge [-debug] OLD.rrd NEW.rrd OUTPUT.rrd")
 		return
 	}
-	fOld := os.Args[1]
-	fNew := os.Args[2]
-	fOut := os.Args[3]
+	fOld := args[0]
+	fNew := args[1]
+	fOut := args[2]
 
 	dOld := Rrd{}
 	bOld := dumpXml(fOld)
@@ -68,9 +76,10 @@ func main() {
 		// Determine "magic offset" for this RRA, if there needs to be one.
 		mOffset := 0
 		tDiff := dNew.LastUpdate - dOld.LastUpdate
-		if int64(dNew.Step) < tDiff {
-			mOffset = int(float64(math.Floor(float64(tDiff / int64(dNew.Step)))))
+		if int64(incrOld) < tDiff {
+			mOffset = int(float64(math.Floor(float64(tDiff / int64(incrOld)))))
 		}
+		fmt.Printf("time differential between %d and %d is %d, step %d offset %d\n", dOld.LastUpdate, dNew.LastUpdate, tDiff, incrOld, mOffset)
 
 		// Determine if we're shrinking or growing here...
 		rraCountOld := len(dOld.Rra[i].Database.Data)
@@ -82,28 +91,28 @@ func main() {
 			if rraCountOld == rraCountNew {
 				// If there's an offset, slide down
 				if mOffset > 0 {
-          fmt.Printf("creating slided offset %d:%d\n", mOffset, len(dOld.Rra[i].Database.Data)-mOffset)
+					fmt.Printf("creating slided offset %d:%d\n", mOffset, len(dOld.Rra[i].Database.Data)-mOffset)
 					sliceOld = appendSlice(dOld.Rra[i].Database.Data[mOffset:len(dOld.Rra[i].Database.Data)-mOffset], offsetRraSlice(mOffset))
 				} else {
 					sliceOld = dOld.Rra[i].Database.Data[:]
 				}
 			} else {
-        if mOffset > 0 {
-			  	b := ((rraCountOld + 1) - rraCountNew) - mOffset
-				  e := (rraCountOld + 1) - mOffset
-				  fmt.Printf("try to slice with offset %d : %d : %d\n", mOffset, b, e)
-          if b < 0 {
-            fmt.Printf("prepend %d NaN elements so we don't overflow\n", mOffset)
-            sliceOld = appendSlice(offsetRraSlice(mOffset), dOld.Rra[i].Database.Data[0:e])
-          } else {
-				    sliceOld = dOld.Rra[i].Database.Data[b:e]
-          }
-        } else {
-			  	b := (rraCountOld + 1) - rraCountNew
-				  e := rraCountOld + 1
-				  fmt.Printf("try to slice : %d : %d\n", b, e)
-				  sliceOld = dOld.Rra[i].Database.Data[b:e]
-        }
+				if mOffset > 0 {
+					b := ((rraCountOld + 1) - rraCountNew) - mOffset
+					e := (rraCountOld + 1) - mOffset
+					fmt.Printf("try to slice with offset %d : %d : %d\n", mOffset, b, e)
+					if b < 0 {
+						fmt.Printf("prepend %d NaN elements so we don't overflow\n", mOffset)
+						sliceOld = appendSlice(offsetRraSlice(mOffset), dOld.Rra[i].Database.Data[0:e])
+					} else {
+						sliceOld = dOld.Rra[i].Database.Data[b:e]
+					}
+				} else {
+					b := (rraCountOld + 1) - rraCountNew
+					e := rraCountOld + 1
+					fmt.Printf("try to slice : %d : %d\n", b, e)
+					sliceOld = dOld.Rra[i].Database.Data[b:e]
+				}
 			}
 			fmt.Printf("rrdcount old, new = %d, %d, sliceold size = %d\n", rraCountOld, rraCountNew, len(sliceOld))
 
@@ -111,7 +120,9 @@ func main() {
 			// Comparison and replace
 			for p := 0; p < rraCountNew; p++ {
 				if !strings.Contains(sliceOld[p].Value, "NaN") && sliceOld[p].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
-					fmt.Printf("Position %d has value to replace [%s -> %s]\n", p, dNew.Rra[i].Database.Data[p].Value, sliceOld[p].Value)
+					if debug {
+						fmt.Printf("Position %d has value to replace [%s -> %s]\n", p, dNew.Rra[i].Database.Data[p].Value, sliceOld[p].Value)
+					}
 					dNew.Rra[i].Database.Data[p].Value = sliceOld[p].Value
 					rCount++
 				}
@@ -121,14 +132,16 @@ func main() {
 			// Support larger new data RRA than old
 			sliceOld := dOld.Rra[i].Database.Data[:]
 
-      // TODO: Figure in for mOffset
+			// TODO: Figure in for mOffset
 			diff := rraCountNew - rraCountOld
 
 			rCount := 0
 			// Comparison and replace
 			for p := diff; p < rraCountNew; p++ {
 				if !strings.Contains(sliceOld[p-diff].Value, "NaN") && sliceOld[p-diff].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
-					fmt.Printf("Position %d (old pos %d) has value to replace [%s -> %s]\n", p, p-diff, dNew.Rra[i].Database.Data[p].Value, sliceOld[p-diff].Value)
+					if debug {
+						fmt.Printf("Position %d (old pos %d) has value to replace [%s -> %s]\n", p, p-diff, dNew.Rra[i].Database.Data[p].Value, sliceOld[p-diff].Value)
+					}
 					dNew.Rra[i].Database.Data[p].Value = sliceOld[p-diff].Value
 					rCount++
 				}
@@ -172,8 +185,9 @@ func restoreXml(file string, rrd Rrd) {
 		panic(err)
 	}
 	bin, err := xml.Marshal(rrd)
-	// DEBUG:
-	// fmt.Println(string(bin))
+	if debug {
+		fmt.Println(string(bin))
+	}
 	_, err = stdin.Write([]byte(bin))
 	if err != nil {
 		panic(err)
