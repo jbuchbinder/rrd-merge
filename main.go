@@ -92,7 +92,7 @@ func main() {
 				// If there's an offset, slide down
 				if mOffset > 0 {
 					fmt.Printf("creating slided offset %d:%d\n", mOffset, len(dOld.Rra[i].Database.Data)-mOffset)
-					sliceOld = appendSlice(dOld.Rra[i].Database.Data[mOffset:len(dOld.Rra[i].Database.Data)-mOffset], offsetRraSlice(mOffset))
+					sliceOld = appendSlice(dOld.Rra[i].Database.Data[mOffset:len(dOld.Rra[i].Database.Data)-mOffset], offsetRraSlice(mOffset, len(dOld.Rra[i].Database.Data[mOffset].Value)))
 				} else {
 					sliceOld = dOld.Rra[i].Database.Data[:]
 				}
@@ -103,7 +103,7 @@ func main() {
 					fmt.Printf("try to slice with offset %d : %d : %d\n", mOffset, b, e)
 					if b < 0 {
 						fmt.Printf("prepend %d NaN elements so we don't overflow\n", mOffset)
-						sliceOld = appendSlice(offsetRraSlice(mOffset), dOld.Rra[i].Database.Data[0:e])
+						sliceOld = appendSlice(offsetRraSlice(mOffset, len(dOld.Rra[i].Database.Data[0].Value)), dOld.Rra[i].Database.Data[0:e])
 					} else {
 						sliceOld = dOld.Rra[i].Database.Data[b:e]
 					}
@@ -119,12 +119,14 @@ func main() {
 			rCount := 0
 			// Comparison and replace
 			for p := 0; p < rraCountNew; p++ {
-				if !strings.Contains(sliceOld[p].Value, "NaN") && sliceOld[p].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
-					if debug {
-						fmt.Printf("Position %d has value to replace [%s -> %s]\n", p, dNew.Rra[i].Database.Data[p].Value, sliceOld[p].Value)
+				for s := 0; s < len(sliceOld[p].Value); s++ {
+					if !strings.Contains(sliceOld[p].Value[s], "NaN") && sliceOld[p].Value[s] != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value[s], "NaN") {
+						if debug {
+							fmt.Printf("Position %d [%d] has value to replace [%s -> %s]\n", p, s, dNew.Rra[i].Database.Data[p].Value[s], sliceOld[p].Value[s])
+						}
+						dNew.Rra[i].Database.Data[p].Value[s] = sliceOld[p].Value[s]
+						rCount++
 					}
-					dNew.Rra[i].Database.Data[p].Value = sliceOld[p].Value
-					rCount++
 				}
 			}
 			fmt.Printf("Replaced %d values in rra #%d\n", rCount, i)
@@ -138,12 +140,14 @@ func main() {
 			rCount := 0
 			// Comparison and replace
 			for p := diff; p < rraCountNew; p++ {
-				if !strings.Contains(sliceOld[p-diff].Value, "NaN") && sliceOld[p-diff].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
-					if debug {
-						fmt.Printf("Position %d (old pos %d) has value to replace [%s -> %s]\n", p, p-diff, dNew.Rra[i].Database.Data[p].Value, sliceOld[p-diff].Value)
+				for s := 0; s < len(sliceOld[p-diff].Value); s++ {
+					if !strings.Contains(sliceOld[p-diff].Value[s], "NaN") && sliceOld[p-diff].Value[s] != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value[s], "NaN") {
+						if debug {
+							fmt.Printf("Position %d (old pos %d) [%d] has value to replace [%s -> %s]\n", p, p-diff, s, dNew.Rra[i].Database.Data[p].Value[s], sliceOld[p-diff].Value[s])
+						}
+						dNew.Rra[i].Database.Data[p].Value[s] = sliceOld[p-diff].Value[s]
+						rCount++
 					}
-					dNew.Rra[i].Database.Data[p].Value = sliceOld[p-diff].Value
-					rCount++
 				}
 			}
 			fmt.Printf("Replaced %d values in rra #%d\n", rCount, i)
@@ -199,10 +203,14 @@ func restoreXml(file string, rrd Rrd) {
 	}
 }
 
-func offsetRraSlice(offset int) []RrdValue {
+func offsetRraSlice(offset int, sz int) []RrdValue {
+	inner := make([]string, sz)
+	for j := 0; j < sz; j++ {
+		inner[j] = "NaN"
+	}
 	ret := make([]RrdValue, offset)
 	for i := 0; i < offset; i++ {
-		ret[i] = RrdValue{Value: "NaN"}
+		ret[i] = RrdValue{Value: inner}
 	}
 	return ret
 }
