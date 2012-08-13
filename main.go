@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,6 +65,13 @@ func main() {
 			continue
 		}
 
+		// Determine "magic offset" for this RRA, if there needs to be one.
+		mOffset := 0
+		tDiff := dNew.LastUpdate - dOld.LastUpdate
+		if int64(dNew.Step) < tDiff {
+			mOffset = int(float64(math.Floor(float64(tDiff / int64(dNew.Step)))))
+		}
+
 		// Determine if we're shrinking or growing here...
 		rraCountOld := len(dOld.Rra[i].Database.Data)
 		rraCountNew := len(dNew.Rra[i].Database.Data)
@@ -72,12 +80,30 @@ func main() {
 		if rraCountOld >= rraCountNew {
 			var sliceOld []RrdValue
 			if rraCountOld == rraCountNew {
-				sliceOld = dOld.Rra[i].Database.Data[:]
+				// If there's an offset, slide down
+				if mOffset > 0 {
+          fmt.Printf("creating slided offset %d:%d\n", mOffset, len(dOld.Rra[i].Database.Data)-mOffset)
+					sliceOld = appendSlice(dOld.Rra[i].Database.Data[mOffset:len(dOld.Rra[i].Database.Data)-mOffset], offsetRraSlice(mOffset))
+				} else {
+					sliceOld = dOld.Rra[i].Database.Data[:]
+				}
 			} else {
-				b := (rraCountOld + 1) - rraCountNew
-				e := rraCountOld + 1
-				fmt.Printf("try to slice : %d : %d\n", b, e)
-				sliceOld = dOld.Rra[i].Database.Data[b:e]
+        if mOffset > 0 {
+			  	b := ((rraCountOld + 1) - rraCountNew) - mOffset
+				  e := (rraCountOld + 1) - mOffset
+				  fmt.Printf("try to slice with offset %d : %d : %d\n", mOffset, b, e)
+          if b < 0 {
+            fmt.Printf("prepend %d NaN elements so we don't overflow\n", mOffset)
+            sliceOld = appendSlice(offsetRraSlice(mOffset), dOld.Rra[i].Database.Data[0:e])
+          } else {
+				    sliceOld = dOld.Rra[i].Database.Data[b:e]
+          }
+        } else {
+			  	b := (rraCountOld + 1) - rraCountNew
+				  e := rraCountOld + 1
+				  fmt.Printf("try to slice : %d : %d\n", b, e)
+				  sliceOld = dOld.Rra[i].Database.Data[b:e]
+        }
 			}
 			fmt.Printf("rrdcount old, new = %d, %d, sliceold size = %d\n", rraCountOld, rraCountNew, len(sliceOld))
 
@@ -95,6 +121,7 @@ func main() {
 			// Support larger new data RRA than old
 			sliceOld := dOld.Rra[i].Database.Data[:]
 
+      // TODO: Figure in for mOffset
 			diff := rraCountNew - rraCountOld
 
 			rCount := 0
@@ -156,4 +183,20 @@ func restoreXml(file string, rrd Rrd) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func offsetRraSlice(offset int) []RrdValue {
+	ret := make([]RrdValue, offset)
+	for i := 0; i < offset; i++ {
+		ret[i] = RrdValue{Value: "NaN"}
+	}
+	return ret
+}
+
+func appendSlice(orig []RrdValue, a []RrdValue) []RrdValue {
+	o := orig[:]
+	for i := 0; i < len(a); i++ {
+		o = append(o, a[i])
+	}
+	return o
 }
