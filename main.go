@@ -92,7 +92,21 @@ func main() {
 			}
 			fmt.Printf("Replaced %d values in rra #%d\n", rCount, i)
 		} else {
-			fmt.Printf("TODO: Support larger newer data than old")
+			// Support larger new data RRA than old
+			sliceOld := dOld.Rra[i].Database.Data[:]
+
+			diff := rraCountNew - rraCountOld
+
+			rCount := 0
+			// Comparison and replace
+			for p := diff; p < rraCountNew; p++ {
+				if !strings.Contains(sliceOld[p-diff].Value, "NaN") && sliceOld[p-diff].Value != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value, "NaN") {
+					fmt.Printf("Position %d (old pos %d) has value to replace [%s -> %s]\n", p, p-diff, dNew.Rra[i].Database.Data[p].Value, sliceOld[p-diff].Value)
+					dNew.Rra[i].Database.Data[p].Value = sliceOld[p-diff].Value
+					rCount++
+				}
+			}
+			fmt.Printf("Replaced %d values in rra #%d\n", rCount, i)
 		}
 	}
 
