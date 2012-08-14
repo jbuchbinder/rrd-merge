@@ -118,6 +118,11 @@ func ProcessRRA(fOld string, fNew string, dOld *Rrd, dNew *Rrd, i int) {
 			if mOffset > 0 {
 				b := ((rraCountOld + 1) - rraCountNew) - mOffset
 				e := (rraCountOld + 1) - mOffset
+				if b < 0 && e < 0 {
+					fmt.Printf("[RRA-%d] Offsets out of range, skipping RRA ( %d : %d )\n", i, b, e)
+					waitGroup.Done()
+					return
+				}
 				fmt.Printf("[RRA-%d] Try to slice with offset %d : %d : %d\n", i, mOffset, b, e)
 				if b < 0 {
 					fmt.Printf("[RRA-%d] Prepend %d NaN elements so we don't overflow\n", i, mOffset)
