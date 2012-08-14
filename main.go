@@ -51,6 +51,11 @@ func main() {
 
 	fmt.Println(" ")
 
+	if dNew.LastUpdate < dOld.LastUpdate {
+		fmt.Println("'New' file has older last update than 'old' file")
+		return
+	}
+
 	// Loop through all of the RRAs in dOld, and use those as the constraint
 	// for building
 	for i := 0; i < len(dOld.Rra); i++ {
