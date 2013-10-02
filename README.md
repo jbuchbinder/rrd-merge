@@ -1,6 +1,6 @@
 # RRD-MERGE
 
-[![Build Status](https://secure.travis-ci.org/jbuchbinder/rrd-merge.          png)](http://travis-ci.org/jbuchbinder/rrd-merge)
+[![Build Status](https://secure.travis-ci.org/jbuchbinder/rrd-merge.png)](http://travis-ci.org/jbuchbinder/rrd-merge)
 
 * Homepage: https://github.com/jbuchbinder/rrd-merge
 * Twitter: [@jbuchbinder](https://twitter.com/jbuchbinder)
