@@ -2,6 +2,8 @@
 
 [![Build Status](https://secure.travis-ci.org/jbuchbinder/rrd-merge.png)](http://travis-ci.org/jbuchbinder/rrd-merge)
 
+[![Gobuild Download](http://gobuild.io/badge/github.com/jbuchbinder/rrd-merge/downloads.svg)](http://gobuild.io/github.com/jbuchbinder/rrd-merge)
+
 * Homepage: https://github.com/jbuchbinder/rrd-merge
 * Twitter: [@jbuchbinder](https://twitter.com/jbuchbinder)
 
