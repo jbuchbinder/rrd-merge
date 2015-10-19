@@ -13,18 +13,22 @@ import (
 	"sync"
 )
 
-var debug bool
-var waitGroup sync.WaitGroup
+var (
+	debug     bool
+	rrdtool   string
+	waitGroup sync.WaitGroup
+)
 
 func init() {
 	flag.BoolVar(&debug, "debug", false, "debug")
+	flag.StringVar(&rrdtool, "rrdtool", "rrdtool", "Path to rrdtool executable")
 }
 
 func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) != 3 {
-		fmt.Println("Usage: rrd-merge [-debug] OLD.rrd NEW.rrd OUTPUT.rrd")
+		fmt.Println("Usage: rrd-merge [-rrdtool RRDTOOL] [-debug] OLD.rrd NEW.rrd OUTPUT.rrd")
 		return
 	}
 	fOld := args[0]
@@ -191,7 +195,7 @@ func rrdInfo(file string, rrd Rrd) {
 }
 
 func dumpXml(file string) []byte {
-	out, err := exec.Command("rrdtool", "dump", file).Output()
+	out, err := exec.Command(rrdtool, "dump", file).Output()
 	if err != nil {
 		panic(err)
 	}
@@ -199,7 +203,7 @@ func dumpXml(file string) []byte {
 }
 
 func restoreXml(file string, rrd Rrd) {
-	cmd := exec.Command("rrdtool", "restore", "-f", "-", file)
+	cmd := exec.Command(rrdtool, "restore", "-f", "-", file)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		panic(err)
