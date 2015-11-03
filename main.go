@@ -146,6 +146,10 @@ func ProcessRRA(fOld string, fNew string, dOld *Rrd, dNew *Rrd, i int) {
 		rCount := 0
 		// Comparison and replace
 		for p := 0; p < rraCountNew; p++ {
+			if len(sliceOld) <= p {
+				fmt.Printf("WARN: Unable to merge in rraCountNew position %d, longer than sliceOld length of %d\n", p, len(sliceOld))
+				continue
+			}
 			for s := 0; s < len(sliceOld[p].Value); s++ {
 				if !strings.Contains(sliceOld[p].Value[s], "NaN") && sliceOld[p].Value[s] != "" && strings.Contains(dNew.Rra[i].Database.Data[p].Value[s], "NaN") {
 					if debug {
